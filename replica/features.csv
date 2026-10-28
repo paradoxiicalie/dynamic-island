@@ -1,0 +1,19 @@
+feature,area,priority,original,clone,notes
+Notch Overlay Window,Display,must,yes,yes,Borderless NSPanel anchored to top center of main screen
+Physical Notch Auto-Detection,Display,must,yes,yes,Calculates safe area insets and auxiliaryTopLeftArea
+Simulated Notch Capsule,Display,must,yes,yes,Renders rounded pill on non-notch Mac displays
+Compact Music Pill,NowPlaying,must,yes,yes,Artwork mini thumbnail on left and animated waveform on right
+Expanded Music Card,NowPlaying,must,yes,yes,Scrubber, playback controls, full marquee artist and title
+Spotify Sync (incl. Phone via Connect),NowPlaying,must,yes,yes,AppleScript bridge reading active playback state
+Apple Music Sync,NowPlaying,should,yes,yes,Native Music.app AppleScript bridge
+Battery Status Monitoring,Battery,must,yes,yes,IOPSCopyPowerSources API for real-time charge and capacity
+Charging Connect Animation,Battery,must,yes,yes,Dynamic Island expands momentarily with green lightning icon
+Low Battery Alert,Battery,must,yes,yes,Auto-alert at < 20% and < 10%
+Hover to Expand,Interaction,must,yes,yes,Spring expansion on mouse over with customizable delay
+Click to Toggle,Interaction,must,yes,yes,Instant expansion/collapse on click
+Trackpad Swipe to Skip,Interaction,should,yes,yes,Horizontal scroll event detection
+Haptic Feedback,Interaction,should,yes,yes,NSHapticFeedbackManager integration
+Menu Bar Helper / Status Icon,Settings,should,yes,yes,Quick access toggle and quit in NSStatusBar
+Customizable Notch Size,Settings,could,yes,yes,Sliders for width and height tuning
+Lock Screen / Screensaver Mode,Display,could,yes,no,Deferred to v2
+Calendar Integration,LiveActivities,could,yes,no,Deferred to v2
