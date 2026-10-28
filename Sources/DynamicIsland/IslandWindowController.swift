@@ -492,44 +492,47 @@ public final class IslandWindowController: NSObject {
         case .idle:
             width = notchWidth
             height = notchHeight
-        case .compactMusic, .compactBattery:
+        case .compactMusic:
             width = notchWidth + 92
+            height = notchHeight
+        case .compactBattery:
+            width = notchWidth + 110
             height = notchHeight
         case .compactTrackChange:
             width = notchWidth + 240
             height = notchHeight
         case .compactLowBattery:
-            width = notchWidth + 120
+            width = notchWidth + 260
             height = notchHeight
         case .compactVolume:
-            width = notchWidth + 95
+            width = notchWidth + 140
             height = notchHeight
         case .compactMute:
-            width = notchWidth + 82
+            width = notchWidth + 130
             height = notchHeight
         case .compactAirPods:
-            width = notchWidth + 125
+            width = notchWidth + 200
             height = notchHeight
         case .compactUnlock:
-            width = notchWidth + 84
+            width = notchWidth + 180
             height = notchHeight
         case .compactLockScreen:
-            width = notchWidth + 44
+            width = notchWidth + 80
             height = notchHeight
         case .compactAlert:
-            width = notchWidth + 115
+            width = notchWidth + 240
             height = notchHeight
         case .compactFocus:
-            width = notchWidth + 120
+            width = notchWidth + 240
             height = notchHeight
         case .compactTimer:
-            width = notchWidth + 88
+            width = notchWidth + 130
             height = notchHeight
         case .compactDual:
-            width = notchWidth + 168
+            width = notchWidth + 170
             height = notchHeight
         case .compactBrightness:
-            width = notchWidth + 95
+            width = notchWidth + 140
             height = notchHeight
         case .expandedMusic:
             width = 348

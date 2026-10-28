@@ -29,9 +29,9 @@ public final class NowPlayingManager: ObservableObject {
         public let bottom: Color
 
         public static let neutral = ArtworkPalette(
-            overall: Color(white: 0.85),
-            top: Color(white: 0.92),
-            bottom: Color(white: 0.72)
+            overall: Color(red: 0.44, green: 0.43, blue: 0.48),
+            top: Color(red: 0.51, green: 0.50, blue: 0.56),
+            bottom: Color(red: 0.38, green: 0.37, blue: 0.41)
         )
     }
 
@@ -325,21 +325,21 @@ public final class NowPlayingManager: ObservableObject {
 
         // If the artwork is mostly monochrome / silver / low-saturation (e.g. < 20% chromatic)
         if chromaticRatio < 0.20 || chromaticPixels.count < 20 {
-            // Authentic Apple Titanium Silver with subtle artwork tint
-            var avgR: Double = 0.84
-            var avgG: Double = 0.83
-            var avgB: Double = 0.85
+            // Authentic Apple Titanium Silver / Slate matching iPhone 15 Pro Dynamic Island
+            var avgR: Double = 0.44
+            var avgG: Double = 0.43
+            var avgB: Double = 0.48
             if !validPixels.isEmpty {
                 let rSum = validPixels.reduce(0.0) { $0 + $1.r } / totalValid
                 let gSum = validPixels.reduce(0.0) { $0 + $1.g } / totalValid
                 let bSum = validPixels.reduce(0.0) { $0 + $1.b } / totalValid
                 let maxAvg = max(rSum, max(gSum, bSum), 0.001)
-                // Blend 75% pure titanium silver with 25% subtle image tone
-                avgR = 0.84 * 0.75 + (rSum / maxAvg * 0.84) * 0.25
-                avgG = 0.83 * 0.75 + (gSum / maxAvg * 0.83) * 0.25
-                avgB = 0.85 * 0.75 + (bSum / maxAvg * 0.85) * 0.25
+                // Blend 75% pure titanium slate with 25% subtle image tone
+                avgR = 0.44 * 0.75 + (rSum / maxAvg * 0.44) * 0.25
+                avgG = 0.43 * 0.75 + (gSum / maxAvg * 0.43) * 0.25
+                avgB = 0.48 * 0.75 + (bSum / maxAvg * 0.48) * 0.25
             }
-            let topColor = Color(red: min(avgR * 1.10 + 0.04, 1.0), green: min(avgG * 1.10 + 0.04, 1.0), blue: min(avgB * 1.10 + 0.04, 1.0))
+            let topColor = Color(red: min(avgR * 1.14 + 0.02, 0.62), green: min(avgG * 1.14 + 0.02, 0.62), blue: min(avgB * 1.14 + 0.02, 0.65))
             let bottomColor = Color(red: avgR * 0.86, green: avgG * 0.86, blue: avgB * 0.86)
             let overallColor = Color(red: avgR, green: avgG, blue: avgB)
             return ArtworkPalette(overall: overallColor, top: topColor, bottom: bottomColor)
@@ -368,22 +368,27 @@ public final class NowPlayingManager: ObservableObject {
         var winG = winning.pixels.reduce(0.0) { $0 + $1.g } / pCount
         var winB = winning.pixels.reduce(0.0) { $0 + $1.b } / pCount
 
-        // Floor brightness for visibility against pure black dynamic island
+        // Subtle, elegant Apple Dynamic Island luminance (never blinding neon)
         let maxComponent = max(winR, max(winG, winB))
-        if maxComponent < 0.72 && maxComponent > 0.001 {
-            let scale = min(0.76 / maxComponent, 2.0)
-            winR = min(winR * scale, 1.0)
-            winG = min(winG * scale, 1.0)
-            winB = min(winB * scale, 1.0)
+        if maxComponent < 0.44 && maxComponent > 0.001 {
+            let scale = min(0.50 / maxComponent, 1.8)
+            winR = min(winR * scale, 0.62)
+            winG = min(winG * scale, 0.62)
+            winB = min(winB * scale, 0.62)
+        } else if maxComponent > 0.65 {
+            let scale = 0.60 / maxComponent
+            winR *= scale
+            winG *= scale
+            winB *= scale
         }
 
-        // Apple signature vertical gradient
+        // Apple signature vertical gradient with subtle top highlight
         let topColor = Color(
-            red: min(winR * 1.16 + 0.04, 1.0),
-            green: min(winG * 1.16 + 0.04, 1.0),
-            blue: min(winB * 1.16 + 0.04, 1.0)
+            red: min(winR * 1.14 + 0.02, 0.68),
+            green: min(winG * 1.14 + 0.02, 0.68),
+            blue: min(winB * 1.14 + 0.02, 0.68)
         )
-        let bottomColor = Color(red: winR * 0.92, green: winG * 0.92, blue: winB * 0.92)
+        let bottomColor = Color(red: winR * 0.86, green: winG * 0.86, blue: winB * 0.86)
         let overallColor = Color(red: winR, green: winG, blue: winB)
 
         return ArtworkPalette(overall: overallColor, top: topColor, bottom: bottomColor)

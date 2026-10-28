@@ -217,18 +217,18 @@ public struct IslandView: View {
             .padding(.leading, 8)
 
             // Middle: Notch Spacer
-            Spacer(minLength: notchWidth - 20)
+            Spacer(minLength: notchWidth)
 
-            // Compact Trailing: 6-bar Apple SystemAperture Waveform (Vertically Centered)
-            HStack(spacing: 2.2) {
+            // Compact Trailing: 6-bar Apple SystemAperture Waveform (Vertically Centered & Ultra-Crisp)
+            HStack(spacing: 1.8) {
                 ForEach(0..<6, id: \.self) { idx in
                     Capsule()
                         .fill(nowPlaying.waveformGradient)
-                        .frame(width: 2.4, height: compactBars[idx])
+                        .frame(width: 1.7, height: compactBars[idx])
                         .animation(.easeInOut(duration: 0.16), value: compactBars)
                 }
             }
-            .padding(.trailing, 10)
+            .padding(.trailing, 11)
         }
         .frame(height: notchHeight)
         .frame(minWidth: notchWidth + 92)
@@ -292,16 +292,16 @@ public struct IslandView: View {
             // Middle: Clear spacer precisely matching the physical notch
             Spacer(minLength: notchWidth)
 
-            // Trailing Right Wing: 6-bar Apple SystemAperture Waveform (Vertically Centered)
-            HStack(spacing: 2.2) {
+            // Trailing Right Wing: 6-bar Apple SystemAperture Waveform (Vertically Centered & Ultra-Crisp)
+            HStack(spacing: 1.8) {
                 ForEach(0..<6, id: \.self) { idx in
                     Capsule()
                         .fill(nowPlaying.waveformGradient)
-                        .frame(width: 2.4, height: compactBars[idx])
+                        .frame(width: 1.7, height: compactBars[idx])
                         .animation(.easeInOut(duration: 0.16), value: compactBars)
                 }
             }
-            .padding(.trailing, 10)
+            .padding(.trailing, 11)
         }
         .frame(height: notchHeight)
         .frame(minWidth: notchWidth + 240)
@@ -317,17 +317,17 @@ public struct IslandView: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: 11.5, weight: .semibold))
                 .foregroundColor(Color.white.opacity(0.85))
-                .padding(.leading, 10)
+                .padding(.leading, 12)
 
-            Spacer(minLength: notchWidth - 40)
+            Spacer(minLength: notchWidth)
 
             Circle()
                 .fill(Color.white.opacity(0.35))
                 .frame(width: 4.5, height: 4.5)
-                .padding(.trailing, 10)
+                .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 44)
+        .frame(minWidth: notchWidth + 80)
     }
 
     // MARK: - 3. Compact Battery Pill (iOS Style)
@@ -342,18 +342,18 @@ public struct IslandView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.green)
             }
-            .padding(.leading, 8)
+            .padding(.leading, 10)
 
-            Spacer(minLength: notchWidth - 20)
+            Spacer(minLength: notchWidth)
 
             // Compact Trailing: Percentage
             Text("\(batteryMonitor.currentBattery.percentage)%")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(.green)
-                .padding(.trailing, 10)
+                .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 92)
+        .frame(minWidth: notchWidth + 110)
         .contentShape(Rectangle())
         .onTapGesture {
             presentationMode = .expandedBattery
@@ -369,7 +369,7 @@ public struct IslandView: View {
                 .foregroundColor(.white)
                 .padding(.leading, 10)
 
-            Spacer(minLength: notchWidth - 30)
+            Spacer(minLength: notchWidth)
 
             // Right: Volume Bar
             ZStack(alignment: .leading) {
@@ -384,7 +384,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 95)
+        .frame(minWidth: notchWidth + 140)
     }
 
     private var volumeIcon: String {
@@ -406,17 +406,18 @@ public struct IslandView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.red)
             }
-            .padding(.leading, 8)
+            .padding(.leading, 10)
 
-            Spacer(minLength: notchWidth - 30)
+            Spacer(minLength: notchWidth)
 
             Text("\(batteryMonitor.currentBattery.percentage)% Low Battery")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.red)
-                .padding(.trailing, 10)
+                .lineLimit(1)
+                .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 120)
+        .frame(minWidth: notchWidth + 260)
         .contentShape(Rectangle())
         .onTapGesture {
             presentationMode = .expandedBattery
@@ -434,17 +435,17 @@ public struct IslandView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(audioMonitor.isMuted ? .red : .white)
             }
-            .padding(.leading, 8)
+            .padding(.leading, 10)
 
-            Spacer(minLength: notchWidth - 25)
+            Spacer(minLength: notchWidth)
 
-            Text(audioMonitor.isMuted ? "Mute" : "Sound")
+            Text(audioMonitor.isMuted ? "Muted" : "Sound")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(audioMonitor.isMuted ? .red : .white)
-                .padding(.trailing, 10)
+                .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 82)
+        .frame(minWidth: notchWidth + 130)
     }
 
     // MARK: - 5b. Compact Unlock Pill (FaceID / TouchID Style)
@@ -458,17 +459,22 @@ public struct IslandView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.green)
             }
-            .padding(.leading, 8)
+            .padding(.leading, 12)
 
-            Spacer(minLength: notchWidth - 25)
+            Spacer(minLength: notchWidth)
 
-            Text("Unlocked")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-                .padding(.trailing, 10)
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.green)
+                Text("Unlocked")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            .padding(.trailing, 14)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 84)
+        .frame(minWidth: notchWidth + 180)
     }
 
     // MARK: - 5c. Compact Alert Pill (Shortcuts / External Automation)
@@ -482,24 +488,26 @@ public struct IslandView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(alertColor(info.iconColor))
             }
-            .padding(.leading, 8)
+            .padding(.leading, 10)
 
-            Spacer(minLength: notchWidth - 30)
+            Spacer(minLength: notchWidth)
 
             VStack(alignment: .trailing, spacing: 0) {
                 Text(info.title)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
+                    .lineLimit(1)
                 if !info.subtitle.isEmpty {
                     Text(info.subtitle)
                         .font(.system(size: 9.5, weight: .regular))
                         .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(1)
                 }
             }
-            .padding(.trailing, 10)
+            .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 115)
+        .frame(minWidth: notchWidth + 240)
     }
 
     private func alertColor(_ name: String) -> Color {
@@ -520,22 +528,22 @@ public struct IslandView: View {
             Image(systemName: "airpodspro")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.white)
-                .padding(.leading, 10)
+                .padding(.leading, 12)
 
-            Spacer(minLength: notchWidth - 40)
+            Spacer(minLength: notchWidth)
 
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                     .font(.system(size: 11))
                 Text("Connected")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
             }
-            .padding(.trailing, 10)
+            .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 115)
+        .frame(minWidth: notchWidth + 200)
     }
 
     // MARK: - 6. Expanded Music Card (Apple iOS 1:1 Dynamic Island)
@@ -586,12 +594,12 @@ public struct IslandView: View {
 
                 Spacer()
 
-                // Header 5-bar Waveform (Apple signature - Vertically Centered)
-                HStack(spacing: 2.4) {
+                // Header 5-bar Waveform (Apple signature - Vertically Centered & Crisp)
+                HStack(spacing: 2.0) {
                     ForEach(0..<5, id: \.self) { idx in
                         Capsule()
                             .fill(nowPlaying.waveformGradient)
-                            .frame(width: 2.8, height: expandedBars[idx])
+                            .frame(width: 2.0, height: expandedBars[idx])
                             .animation(.easeInOut(duration: 0.18), value: expandedBars)
                     }
                 }
@@ -912,22 +920,23 @@ public struct IslandView: View {
             Image(systemName: info.iconName)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.indigo)
-                .padding(.leading, 10)
+                .padding(.leading, 12)
 
-            Spacer(minLength: notchWidth - 30)
+            Spacer(minLength: notchWidth)
 
             HStack(spacing: 4) {
                 Text(info.name)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.white)
+                    .lineLimit(1)
                 Text(info.isOn ? "On" : "Off")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(info.isOn ? .indigo : .gray)
             }
-            .padding(.trailing, 10)
+            .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 120)
+        .frame(minWidth: notchWidth + 240)
     }
 
     // MARK: - 10. Compact Timer Pill (iOS Live Activity)
@@ -936,17 +945,17 @@ public struct IslandView: View {
             Image(systemName: "timer")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.orange)
-                .padding(.leading, 10)
+                .padding(.leading, 12)
 
-            Spacer(minLength: notchWidth - 30)
+            Spacer(minLength: notchWidth)
 
             Text(info.formattedRemaining)
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(.orange)
-                .padding(.trailing, 10)
+                .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 88)
+        .frame(minWidth: notchWidth + 130)
         .contentShape(Rectangle())
         .onTapGesture {
             presentationMode = .expandedTimer(info)
@@ -1037,15 +1046,15 @@ public struct IslandView: View {
         HStack(spacing: 8) {
             // Left Half: Music Artwork & Waveform (Tappable to expand Music)
             HStack(spacing: 6) {
-                if let artURL = track.artworkURL, let nsImg = NSImage(contentsOf: artURL) {
-                    Image(nsImage: nsImg)
+                if let art = nowPlaying.artworkImage {
+                    Image(nsImage: art)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 20, height: 20)
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 5.5, style: .continuous))
                 } else {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        RoundedRectangle(cornerRadius: 5.5, style: .continuous)
                             .fill(LinearGradient(colors: [Color.pink, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 20, height: 20)
                         Image(systemName: "music.note")
@@ -1054,15 +1063,15 @@ public struct IslandView: View {
                     }
                 }
 
-                HStack(spacing: 2) {
+                HStack(spacing: 1.8) {
                     ForEach(0..<3, id: \.self) { idx in
                         Capsule()
                             .fill(nowPlaying.waveformGradient)
-                            .frame(width: 2.4, height: max(compactBars[idx] * 0.75, 3.0))
+                            .frame(width: 1.7, height: max(compactBars[idx] * 0.75, 3.0))
                             .animation(.easeInOut(duration: 0.16), value: compactBars)
                     }
                 }
-                .frame(width: 14, height: 16)
+                .frame(width: 11, height: 16)
             }
             .padding(.leading, 8)
             .contentShape(Rectangle())
@@ -1070,7 +1079,7 @@ public struct IslandView: View {
                 presentationMode = .expandedMusic
             }
 
-            Spacer(minLength: notchWidth - 40)
+            Spacer(minLength: notchWidth)
 
             // Right Half: Timer Icon & Countdown (Tappable to expand Timer)
             HStack(spacing: 5) {
@@ -1082,14 +1091,14 @@ public struct IslandView: View {
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.orange)
             }
-            .padding(.trailing, 8)
+            .padding(.trailing, 10)
             .contentShape(Rectangle())
             .onTapGesture {
                 presentationMode = .expandedTimer(timer)
             }
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 168)
+        .frame(minWidth: notchWidth + 170)
     }
 
     // MARK: - 13. Compact Brightness Pill (iOS HUD Replacement)
@@ -1100,7 +1109,7 @@ public struct IslandView: View {
                 .foregroundColor(.white)
                 .padding(.leading, 10)
 
-            Spacer(minLength: notchWidth - 30)
+            Spacer(minLength: notchWidth)
 
             ZStack(alignment: .leading) {
                 Capsule()
@@ -1114,7 +1123,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 95)
+        .frame(minWidth: notchWidth + 140)
     }
 
     // MARK: - 14. Expanded File Shelf Card ("Drop to Notch" Tray)
