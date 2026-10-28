@@ -219,16 +219,15 @@ public struct IslandView: View {
             // Middle: Notch Spacer
             Spacer(minLength: notchWidth - 20)
 
-            // Compact Trailing: 6-bar Apple SystemAperture Waveform
-            HStack(alignment: .bottom, spacing: 2.2) {
+            // Compact Trailing: 6-bar Apple SystemAperture Waveform (Vertically Centered)
+            HStack(spacing: 2.2) {
                 ForEach(0..<6, id: \.self) { idx in
                     Capsule()
                         .fill(nowPlaying.waveformGradient)
-                        .frame(width: 2.4, height: nowPlaying.currentTrack.isPlaying ? compactBars[idx] : 3.5)
+                        .frame(width: 2.4, height: nowPlaying.currentTrack.isPlaying ? compactBars[idx] : 3.0)
                         .animation(.easeInOut(duration: 0.16), value: compactBars)
                 }
             }
-            .frame(height: 19, alignment: .bottom)
             .padding(.trailing, 10)
         }
         .frame(height: notchHeight)
@@ -289,16 +288,15 @@ public struct IslandView: View {
 
             Spacer(minLength: notchWidth - 90)
 
-            // Trailing: 6-bar Apple SystemAperture Waveform
-            HStack(alignment: .bottom, spacing: 2.2) {
+            // Trailing: 6-bar Apple SystemAperture Waveform (Vertically Centered)
+            HStack(spacing: 2.2) {
                 ForEach(0..<6, id: \.self) { idx in
                     Capsule()
                         .fill(nowPlaying.waveformGradient)
-                        .frame(width: 2.4, height: nowPlaying.currentTrack.isPlaying ? compactBars[idx] : 3.5)
+                        .frame(width: 2.4, height: nowPlaying.currentTrack.isPlaying ? compactBars[idx] : 3.0)
                         .animation(.easeInOut(duration: 0.16), value: compactBars)
                 }
             }
-            .frame(height: 19, alignment: .bottom)
             .padding(.trailing, 10)
         }
         .frame(height: notchHeight)
@@ -584,8 +582,8 @@ public struct IslandView: View {
 
                 Spacer()
 
-                // Header 5-bar Waveform (Apple signature)
-                HStack(alignment: .bottom, spacing: 2.4) {
+                // Header 5-bar Waveform (Apple signature - Vertically Centered)
+                HStack(spacing: 2.4) {
                     ForEach(0..<5, id: \.self) { idx in
                         Capsule()
                             .fill(nowPlaying.waveformGradient)
@@ -593,7 +591,6 @@ public struct IslandView: View {
                             .animation(.easeInOut(duration: 0.18), value: expandedBars)
                     }
                 }
-                .frame(height: 24, alignment: .bottom)
                 .padding(.trailing, 2)
             }
             .padding(.horizontal, 18)
@@ -1053,7 +1050,7 @@ public struct IslandView: View {
                     }
                 }
 
-                HStack(alignment: .bottom, spacing: 2) {
+                HStack(spacing: 2) {
                     ForEach(0..<3, id: \.self) { idx in
                         Capsule()
                             .fill(nowPlaying.waveformGradient)
@@ -1061,7 +1058,7 @@ public struct IslandView: View {
                             .animation(.easeInOut(duration: 0.16), value: compactBars)
                     }
                 }
-                .frame(width: 14, height: 16, alignment: .bottom)
+                .frame(width: 14, height: 16)
             }
             .padding(.leading, 8)
             .contentShape(Rectangle())
@@ -1295,12 +1292,12 @@ public struct IslandView: View {
                 waveformTimer = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { _ in
                     DispatchQueue.main.async {
                         compactBars = [
-                            CGFloat.random(in: 4...12),
-                            CGFloat.random(in: 8...16),
-                            CGFloat.random(in: 12...19),
-                            CGFloat.random(in: 10...18),
+                            CGFloat.random(in: 6...18),
+                            CGFloat.random(in: 5...15),
+                            CGFloat.random(in: 9...20),
                             CGFloat.random(in: 6...14),
-                            CGFloat.random(in: 3.5...9)
+                            CGFloat.random(in: 4...10),
+                            CGFloat.random(in: 2.5...5.0)
                         ]
                         expandedBars = [
                             CGFloat.random(in: 4...10),
@@ -1315,7 +1312,7 @@ public struct IslandView: View {
         } else {
             waveformTimer?.invalidate()
             waveformTimer = nil
-            compactBars = [3.5, 6, 8, 8, 6, 3.5]
+            compactBars = [6, 10, 14, 10, 6, 2.5]
             expandedBars = [3, 6, 8, 6, 3]
         }
     }
