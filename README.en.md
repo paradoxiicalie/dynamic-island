@@ -47,7 +47,7 @@
 #### [ NOW PLAYING AND PALETTE EXTRACTION ]
 * **Bidirectional IPC (Spotify and Apple Music):** Executes pre-compiled `NSAppleScript` bytecode in-memory without script recompilation overhead.
 * **Dual-Anchor Artwork Color Extraction:** Analyzes artwork pixel buffers to extract top and bottom luminance-saturation anchor coordinates, rendering an authentic linear vertical gradient across the visualizer bars.
-* **6-Bar Spectrum Analyzer:** Waveform bars pinned to a common baseline (`alignment: .bottom`) with 2.8 pt width, 1.4 pt corner radius, and independent spring dynamics matching iOS 18.
+* **6-Bar Spectrum Analyzer:** Waveform bars pinned to a common baseline (`alignment: .bottom`) with 2.8 pt width, 1.4 pt corner radius, and independent spring dynamics matching the original iPhone Dynamic Island.
 * **Expanded Music Card (348 pt):** High-resolution album artwork, interactive timeline scrubber with seek capability, playback controls, and rapid output switching.
 * **Intelligent Insertion Delay Buffer:** 60-millisecond transition gate on track change and screen wake prevents layout clipping and accidental drops to idle state.
 
@@ -84,17 +84,8 @@
 
 ### 03 // BUILD AND INSTALLATION
 
-#### [ EXPIRATION LIFECYCLE: MAC VS IOS ]
-
-| Platform | Installation Method | Validity Duration | Requires 7-day Re-signing? |
-| :--- | :--- | :--- | :---: |
-| **macOS** | **Local Build (Swift PM / Binary)** | **PERMANENT (FOREVER)** | **NO** |
-| **macOS** | **Installed in /Applications** | **PERMANENT (FOREVER)** | **NO** |
-| iOS | Free Apple ID (Sideloadly / AltStore) | 7 Days | **YES (Auto-resign required)** |
-| iOS | Paid Apple Developer Account ($99/yr) | 365 Days | Annually |
-
-> [!IMPORTANT]
-> **The application on Mac runs permanently.** Unlike iOS, macOS does not impose a 7-day provisioning profile expiration on locally compiled native software. Once compiled and placed in `/Applications`, DynamicIsland runs 24/7 indefinitely without periodic refreshes or re-signing steps.
+#### [ LIFECYCLE AND PERMANENCE ]
+Engineered exclusively for Mac computers running macOS. The application compiles into a native system binary package (`LSUIElement`) with no provisioning profile expirations, time limits, or renewal cycles. Once compiled and installed in `/Applications`, the daemon runs in the background continuously and indefinitely.
 
 ---
 
