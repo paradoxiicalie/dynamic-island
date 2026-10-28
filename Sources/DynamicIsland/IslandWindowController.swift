@@ -277,26 +277,20 @@ public final class IslandWindowController: NSObject {
 
         // 6. Screen Lock & Unlock Observers (Lock Screen & FaceID / TouchID style animation)
         DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name("com.apple.screenIsLocked"),
+            self,
+            selector: #selector(handleScreenLocked(_:)),
+            name: NSNotification.Name("com.apple.screenIsLocked"),
             object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                SoundManager.shared.play("lock")
-                self?.presentationMode = .compactLockScreen
-            }
-        }
+            suspensionBehavior: .deliverImmediately
+        )
 
         DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name("com.apple.screenIsUnlocked"),
+            self,
+            selector: #selector(handleScreenUnlocked(_:)),
+            name: NSNotification.Name("com.apple.screenIsUnlocked"),
             object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                SoundManager.shared.play("unlock")
-                self?.showTransientAlert(mode: .compactUnlock, duration: 2.0)
-            }
-        }
+            suspensionBehavior: .deliverImmediately
+        )
 
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.screensDidWakeNotification,
@@ -304,8 +298,8 @@ public final class IslandWindowController: NSObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                SoundManager.shared.play("unlock")
-                self?.showTransientAlert(mode: .compactUnlock, duration: 2.0)
+                self?.setupNotchGeometry()
+                self?.updateWindowFrame(animated: false)
             }
         }
 
@@ -438,6 +432,20 @@ public final class IslandWindowController: NSObject {
                     }
                 }
             }
+        }
+    }
+
+    @objc private func handleScreenLocked(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            SoundManager.shared.play("lock")
+            self?.presentationMode = .compactLockScreen
+        }
+    }
+
+    @objc private func handleScreenUnlocked(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            SoundManager.shared.play("unlock")
+            self?.showTransientAlert(mode: .compactUnlock, duration: 2.0)
         }
     }
 

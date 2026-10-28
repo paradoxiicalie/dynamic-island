@@ -29,79 +29,147 @@ public struct IslandView: View {
     }
 
     public var body: some View {
-        ZStack {
-            switch presentationMode {
-            case .idle:
-                idleCapsule
-            case .compactMusic:
-                compactMusicPill
-            case .compactTrackChange(let track):
-                compactTrackChangePill(track: track)
-            case .compactBattery:
-                compactBatteryPill
-            case .compactLowBattery:
-                compactLowBatteryPill
-            case .compactVolume:
-                compactVolumePill
-            case .compactMute:
-                compactMutePill
-            case .compactAirPods:
-                compactAirPodsPill
-            case .compactUnlock:
-                compactUnlockPill
-            case .compactLockScreen:
-                compactLockScreenPill
-            case .compactAlert(let info):
-                compactAlertPill(info: info)
-            case .compactFocus(let info):
-                compactFocusPill(info: info)
-            case .compactTimer(let info):
-                compactTimerPill(info: info)
-            case .compactDual(let track, let timer):
-                compactDualPill(track: track, timer: timer)
-            case .compactBrightness(let level):
-                compactBrightnessPill(level: level)
-            case .expandedMusic:
-                expandedMusicCard
-            case .expandedBattery:
-                expandedBatteryCard
-            case .expandedRoutes:
-                expandedRoutesCard
-            case .expandedTimer(let info):
-                expandedTimerCard(info: info)
-            case .expandedFileShelf:
-                expandedFileShelfCard
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous))
-        .background(
-            Color.black
-                .clipShape(RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
-                .stroke(isDropTargeted ? Color.cyan : Color.white.opacity(0.10), style: isDropTargeted ? StrokeStyle(lineWidth: 2, dash: [6, 4]) : StrokeStyle(lineWidth: 0.5))
-        )
-        .overlay(
-            Group {
-                if privacyMonitor.isAnyActive && !isCardExpanded {
-                    Circle()
-                        .fill(privacyMonitor.isCameraActive ? Color.green : Color.orange)
-                        .frame(width: 6.5, height: 6.5)
-                        .shadow(color: (privacyMonitor.isCameraActive ? Color.green : Color.orange).opacity(0.85), radius: 3)
-                        .offset(x: 18, y: 0)
+        GeometryReader { geo in
+            ZStack {
+                // 1. Solid Apple true-black background capsule strictly locked to current window frame
+                RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
+                    .fill(Color.black)
+
+                // 2. Active presentation content strictly clipped inside the capsule
+                ZStack {
+                    switch presentationMode {
+                    case .idle:
+                        idleCapsule
+                    case .compactMusic:
+                        compactMusicPill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactTrackChange(let track):
+                        compactTrackChangePill(track: track)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactBattery:
+                        compactBatteryPill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactLowBattery:
+                        compactLowBatteryPill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactVolume:
+                        compactVolumePill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactMute:
+                        compactMutePill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactAirPods:
+                        compactAirPodsPill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactUnlock:
+                        compactUnlockPill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactLockScreen:
+                        compactLockScreenPill
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactAlert(let info):
+                        compactAlertPill(info: info)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactFocus(let info):
+                        compactFocusPill(info: info)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactTimer(let info):
+                        compactTimerPill(info: info)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactDual(let track, let timer):
+                        compactDualPill(track: track, timer: timer)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .compactBrightness(let level):
+                        compactBrightnessPill(level: level)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
+                    case .expandedMusic:
+                        expandedMusicCard
+                            .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    case .expandedBattery:
+                        expandedBatteryCard
+                            .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    case .expandedRoutes:
+                        expandedRoutesCard
+                            .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    case .expandedTimer(let info):
+                        expandedTimerCard(info: info)
+                            .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    case .expandedFileShelf:
+                        expandedFileShelfCard
+                            .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    }
                 }
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
             }
-        )
-        .shadow(
-            color: isCardExpanded ? Color.black.opacity(0.55) : Color.clear,
-            radius: isCardExpanded ? 24 : 0,
-            x: 0,
-            y: isCardExpanded ? 8 : 0
-        )
-        .scaleEffect(isPressed ? 0.96 : 1.0)
-        .offset(x: dragOffset)
-        .animation(.spring(response: 0.34, dampingFraction: 0.74), value: presentationMode)
+            .clipShape(RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
+                    .stroke(isDropTargeted ? Color.cyan : Color.white.opacity(0.10), style: isDropTargeted ? StrokeStyle(lineWidth: 2, dash: [6, 4]) : StrokeStyle(lineWidth: 0.5))
+            )
+            .overlay(
+                Group {
+                    if privacyMonitor.isAnyActive && !isCardExpanded {
+                        Circle()
+                            .fill(privacyMonitor.isCameraActive ? Color.green : Color.orange)
+                            .frame(width: 6.5, height: 6.5)
+                            .shadow(color: (privacyMonitor.isCameraActive ? Color.green : Color.orange).opacity(0.85), radius: 3)
+                            .offset(x: 18, y: 0)
+                    }
+                }
+            )
+            .shadow(
+                color: isCardExpanded ? Color.black.opacity(0.55) : Color.clear,
+                radius: isCardExpanded ? 24 : 0,
+                x: 0,
+                y: isCardExpanded ? 8 : 0
+            )
+            .scaleEffect(isPressed ? 0.96 : 1.0)
+            .offset(x: dragOffset)
+        }
+        .animation(.spring(response: 0.30, dampingFraction: 0.82), value: presentationMode)
         .animation(.spring(response: 0.25, dampingFraction: 0.65), value: isPressed)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             var handled = false
@@ -171,7 +239,7 @@ public struct IslandView: View {
     // MARK: - 1. Idle Capsule
     private var idleCapsule: some View {
         Color.clear
-            .frame(width: notchWidth, height: notchHeight)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
                 IslandWindowController.shared.toggleExpansion()
@@ -231,7 +299,7 @@ public struct IslandView: View {
             .padding(.trailing, 11)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 92)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             // Tap on the notch displays the expanded info card
@@ -304,7 +372,7 @@ public struct IslandView: View {
             .padding(.trailing, 11)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 240)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             IslandWindowController.shared.toggleExpansion()
@@ -327,7 +395,7 @@ public struct IslandView: View {
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 80)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 3. Compact Battery Pill (iOS Style)
@@ -353,7 +421,7 @@ public struct IslandView: View {
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 110)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             presentationMode = .expandedBattery
@@ -384,7 +452,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 140)
+        .frame(maxWidth: .infinity)
     }
 
     private var volumeIcon: String {
@@ -417,7 +485,7 @@ public struct IslandView: View {
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 260)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             presentationMode = .expandedBattery
@@ -445,7 +513,7 @@ public struct IslandView: View {
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 130)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 5b. Compact Unlock Pill (FaceID / TouchID Style)
@@ -474,7 +542,7 @@ public struct IslandView: View {
             .padding(.trailing, 14)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 180)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 5c. Compact Alert Pill (Shortcuts / External Automation)
@@ -507,7 +575,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 240)
+        .frame(maxWidth: .infinity)
     }
 
     private func alertColor(_ name: String) -> Color {
@@ -543,7 +611,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 200)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 6. Expanded Music Card (Apple iOS 1:1 Dynamic Island)
@@ -936,7 +1004,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 240)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 10. Compact Timer Pill (iOS Live Activity)
@@ -955,7 +1023,7 @@ public struct IslandView: View {
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 130)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             presentationMode = .expandedTimer(info)
@@ -1098,7 +1166,7 @@ public struct IslandView: View {
             }
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 170)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 13. Compact Brightness Pill (iOS HUD Replacement)
@@ -1123,7 +1191,7 @@ public struct IslandView: View {
             .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 140)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 14. Expanded File Shelf Card ("Drop to Notch" Tray)
