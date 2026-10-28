@@ -21,7 +21,21 @@ public final class NowPlayingManager: ObservableObject {
     }
 
     public var onTrackChanged: ((MediaTrack) -> Void)?
+    public var onPlaybackStateChanged: ((Bool) -> Void)?
 
+    public struct ArtworkPalette: Sendable {
+        public let overall: Color
+        public let top: Color
+        public let bottom: Color
+
+        public static let neutral = ArtworkPalette(
+            overall: Color(white: 0.85),
+            top: Color(white: 0.92),
+            bottom: Color(white: 0.72)
+        )
+    }
+
+    private var artworkCache: [URL: (image: NSImage, palette: ArtworkPalette)] = [:]
     private var pollTimer: Timer?
     private var isUpdating = false
     private var cachedArtworkURL: URL?
@@ -54,9 +68,11 @@ public final class NowPlayingManager: ObservableObject {
     }()
 
     private init() {
-        startPolling()
         setupDistributedObservers()
         setupPowerStateObservers()
+        Task {
+            await updateNowPlaying()
+        }
     }
 
     private func setupPowerStateObservers() {
@@ -86,24 +102,50 @@ public final class NowPlayingManager: ObservableObject {
 
         // Spotify instant state change notification
         center.addObserver(
-            forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"),
+            self,
+            selector: #selector(handleSpotifyNotification(_:)),
+            name: NSNotification.Name("com.spotify.client.PlaybackStateChanged"),
             object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.updateNowPlaying()
-            }
-        }
+            suspensionBehavior: .deliverImmediately
+        )
 
         // Apple Music instant state change notification
         center.addObserver(
-            forName: NSNotification.Name("com.apple.Music.playerInfo"),
+            self,
+            selector: #selector(handleMusicNotification(_:)),
+            name: NSNotification.Name("com.apple.Music.playerInfo"),
             object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.updateNowPlaying()
+            suspensionBehavior: .deliverImmediately
+        )
+    }
+
+    @objc private func handleSpotifyNotification(_ note: Notification) {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            if let info = note.userInfo as? [String: Any],
+               let stateStr = info["Player State"] as? String {
+                let playing = (stateStr.lowercased() == "playing")
+                if self.currentTrack.isPlaying != playing {
+                    self.currentTrack.isPlaying = playing
+                    self.onPlaybackStateChanged?(playing)
+                }
             }
+            await self.updateNowPlaying()
+        }
+    }
+
+    @objc private func handleMusicNotification(_ note: Notification) {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            if let info = note.userInfo as? [String: Any],
+               let stateStr = info["Player State"] as? String {
+                let playing = (stateStr.lowercased() == "playing")
+                if self.currentTrack.isPlaying != playing {
+                    self.currentTrack.isPlaying = playing
+                    self.onPlaybackStateChanged?(playing)
+                }
+            }
+            await self.updateNowPlaying()
         }
     }
 
@@ -140,12 +182,30 @@ public final class NowPlayingManager: ObservableObject {
 
         if let track = newTrack {
             let wasDifferent = (track.title != previousTrackTitle && !track.title.isEmpty)
-            self.currentTrack = track
-            await updateArtwork(from: track.artworkURL)
+            let isPlayingChanged = (track.isPlaying != currentTrack.isPlaying)
+
+            // 1. Fetch artwork and extract palette BEFORE mutating published state
+            let (newArt, palette) = await fetchArtworkAndPalette(from: track.artworkURL)
+
+            // 2. Atomic state mutation on MainActor with smooth transition
+            withAnimation(.easeInOut(duration: 0.28)) {
+                self.artworkImage = newArt
+                self.accentColor = palette.overall
+                self.accentTopColor = palette.top
+                self.accentBottomColor = palette.bottom
+                self.currentTrack = track
+            }
+
+            self.previousTrackTitle = track.title
+
+            // 3. Notify track change and playback state immediately
             if wasDifferent && !previousTrackTitle.isEmpty {
                 self.onTrackChanged?(track)
             }
-            self.previousTrackTitle = track.title
+            if isPlayingChanged {
+                self.onPlaybackStateChanged?(track.isPlaying)
+            }
+
             if track.isPlaying && pollTimer == nil {
                 startPolling()
             } else if !track.isPlaying && pollTimer != nil {
@@ -155,51 +215,47 @@ public final class NowPlayingManager: ObservableObject {
         }
 
         if currentTrack != .empty {
-            self.currentTrack = .empty
-            self.artworkImage = nil
-            self.cachedArtworkURL = nil
-            self.accentColor = Color(white: 0.9)
-            self.accentTopColor = Color(white: 0.95)
-            self.accentBottomColor = Color(white: 0.75)
+            withAnimation(.easeInOut(duration: 0.28)) {
+                self.currentTrack = .empty
+                self.artworkImage = nil
+                self.cachedArtworkURL = nil
+                self.accentColor = ArtworkPalette.neutral.overall
+                self.accentTopColor = ArtworkPalette.neutral.top
+                self.accentBottomColor = ArtworkPalette.neutral.bottom
+            }
             self.previousTrackTitle = ""
+            self.onPlaybackStateChanged?(false)
             stopPolling()
         }
     }
 
-    private func updateArtwork(from url: URL?) async {
+    private func fetchArtworkAndPalette(from url: URL?) async -> (NSImage?, ArtworkPalette) {
         guard let url = url else {
-            self.artworkImage = nil
-            self.cachedArtworkURL = nil
-            self.accentColor = Color(white: 0.9)
-            self.accentTopColor = Color(white: 0.95)
-            self.accentBottomColor = Color(white: 0.75)
-            return
+            return (nil, .neutral)
         }
-        if url == cachedArtworkURL && artworkImage != nil {
-            return
+        if let cached = artworkCache[url] {
+            return (cached.image, cached.palette)
         }
-        cachedArtworkURL = url
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             if let image = NSImage(data: data) {
-                self.artworkImage = image
                 let palette = extractPalette(from: image)
-                self.accentColor = palette.overall
-                self.accentTopColor = palette.top
-                self.accentBottomColor = palette.bottom
+                artworkCache[url] = (image, palette)
+                return (image, palette)
             }
         } catch {
-            print("Artwork fetch failed: \(error.localizedDescription)")
+            print("Artwork fetch error: \(error.localizedDescription)")
         }
+        return (nil, .neutral)
     }
 
-    private func extractPalette(from image: NSImage) -> (overall: Color, top: Color, bottom: Color) {
+    private func extractPalette(from image: NSImage) -> ArtworkPalette {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            return (Color(white: 0.9), Color(white: 0.95), Color(white: 0.75))
+            return .neutral
         }
-        let width = 32
-        let height = 32
+        let width = 36
+        let height = 36
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         var rawData = [UInt8](repeating: 0, count: width * height * 4)
         guard let context = CGContext(
@@ -211,93 +267,126 @@ public final class NowPlayingManager: ObservableObject {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
-            return (Color(white: 0.9), Color(white: 0.95), Color(white: 0.75))
+            return .neutral
         }
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
-        func scoreZone(yStart: Int, yEnd: Int) -> (r: Double, g: Double, b: Double)? {
-            struct ColorBucket {
-                var score: Double = 0
-                var rSum: Double = 0
-                var gSum: Double = 0
-                var bSum: Double = 0
-                var count: Int = 0
-            }
-            var buckets: [Int: ColorBucket] = [:]
-
-            for y in yStart..<yEnd {
-                for x in 0..<width {
-                    let offset = (y * width + x) * 4
-                    let r = Double(rawData[offset]) / 255.0
-                    let g = Double(rawData[offset + 1]) / 255.0
-                    let b = Double(rawData[offset + 2]) / 255.0
-
-                    let maxC = max(r, max(g, b))
-                    let minC = min(r, min(g, b))
-                    let delta = maxC - minC
-                    let v = maxC
-                    let s = maxC == 0 ? 0 : delta / maxC
-                    var h: Double = 0
-                    if delta > 0.0001 {
-                        if maxC == r {
-                            h = (g - b) / delta
-                            if h < 0 { h += 6.0 }
-                        } else if maxC == g {
-                            h = 2.0 + (b - r) / delta
-                        } else {
-                            h = 4.0 + (r - g) / delta
-                        }
-                        h /= 6.0
-                    }
-
-                    if v < 0.10 || (v > 0.95 && s < 0.10) { continue }
-
-                    let bucketIdx = s < 0.10 ? -1 : (Int(h * 16.0) % 16)
-                    var score = pow(s, 1.15) * (1.0 - abs(v - 0.55) * 0.7)
-                    if (h >= 0.04 && h <= 0.14) && s >= 0.10 { score *= 1.35 }
-                    if bucketIdx == -1 && (v >= 0.40 && v <= 0.85) { score = 0.22 }
-
-                    var bucket = buckets[bucketIdx] ?? ColorBucket()
-                    bucket.score += score
-                    bucket.rSum += r
-                    bucket.gSum += g
-                    bucket.bSum += b
-                    bucket.count += 1
-                    buckets[bucketIdx] = bucket
-                }
-            }
-
-            guard let winning = buckets.values.max(by: { $0.score < $1.score }), winning.count > 0 else {
-                return nil
-            }
-            var avgR = winning.rSum / Double(winning.count)
-            var avgG = winning.gSum / Double(winning.count)
-            var avgB = winning.bSum / Double(winning.count)
-            let curMax = max(avgR, max(avgG, avgB))
-            if curMax > 0.001 && curMax < 0.65 {
-                let scale = min(0.72 / curMax, 1.8)
-                avgR = min(avgR * scale, 1.0)
-                avgG = min(avgG * scale, 1.0)
-                avgB = min(avgB * scale, 1.0)
-            }
-            return (avgR, avgG, avgB)
+        struct Pixel {
+            let r: Double
+            let g: Double
+            let b: Double
+            let h: Double
+            let s: Double
+            let v: Double
         }
 
-        let overallRGB = scoreZone(yStart: 0, yEnd: height) ?? (0.9, 0.9, 0.9)
-        // CGContext standard coords: y=0..16 is bottom half, y=16..32 is top half!
-        let bottomRGB = scoreZone(yStart: 0, yEnd: 16) ?? overallRGB
-        let topRGB = scoreZone(yStart: 16, yEnd: 32) ?? overallRGB
+        var validPixels: [Pixel] = []
+        var chromaticPixels: [Pixel] = []
 
-        // Ensure vertical gradient with authentic luminance highlight on top
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = (y * width + x) * 4
+                let r = Double(rawData[offset]) / 255.0
+                let g = Double(rawData[offset + 1]) / 255.0
+                let b = Double(rawData[offset + 2]) / 255.0
+
+                let maxC = max(r, max(g, b))
+                let minC = min(r, min(g, b))
+                let delta = maxC - minC
+                let v = maxC
+                let s = maxC == 0 ? 0 : delta / maxC
+                var h: Double = 0
+                if delta > 0.0001 {
+                    if maxC == r {
+                        h = (g - b) / delta
+                        if h < 0 { h += 6.0 }
+                    } else if maxC == g {
+                        h = 2.0 + (b - r) / delta
+                    } else {
+                        h = 4.0 + (r - g) / delta
+                    }
+                    h /= 6.0
+                }
+
+                // Apple ignores dark shadows/background and pure white highlights
+                if v < 0.18 { continue }
+                if v > 0.95 && s < 0.08 { continue }
+
+                let p = Pixel(r: r, g: g, b: b, h: h, s: s, v: v)
+                validPixels.append(p)
+                if s >= 0.22 && v >= 0.20 {
+                    chromaticPixels.append(p)
+                }
+            }
+        }
+
+        let totalValid = Double(validPixels.count)
+        let chromaticRatio = totalValid > 0 ? Double(chromaticPixels.count) / totalValid : 0
+
+        // If the artwork is mostly monochrome / silver / low-saturation (e.g. < 20% chromatic)
+        if chromaticRatio < 0.20 || chromaticPixels.count < 20 {
+            // Authentic Apple Titanium Silver with subtle artwork tint
+            var avgR: Double = 0.84
+            var avgG: Double = 0.83
+            var avgB: Double = 0.85
+            if !validPixels.isEmpty {
+                let rSum = validPixels.reduce(0.0) { $0 + $1.r } / totalValid
+                let gSum = validPixels.reduce(0.0) { $0 + $1.g } / totalValid
+                let bSum = validPixels.reduce(0.0) { $0 + $1.b } / totalValid
+                let maxAvg = max(rSum, max(gSum, bSum), 0.001)
+                // Blend 75% pure titanium silver with 25% subtle image tone
+                avgR = 0.84 * 0.75 + (rSum / maxAvg * 0.84) * 0.25
+                avgG = 0.83 * 0.75 + (gSum / maxAvg * 0.83) * 0.25
+                avgB = 0.85 * 0.75 + (bSum / maxAvg * 0.85) * 0.25
+            }
+            let topColor = Color(red: min(avgR * 1.10 + 0.04, 1.0), green: min(avgG * 1.10 + 0.04, 1.0), blue: min(avgB * 1.10 + 0.04, 1.0))
+            let bottomColor = Color(red: avgR * 0.86, green: avgG * 0.86, blue: avgB * 0.86)
+            let overallColor = Color(red: avgR, green: avgG, blue: avgB)
+            return ArtworkPalette(overall: overallColor, top: topColor, bottom: bottomColor)
+        }
+
+        // Chromatic: Bucket into 16 hue sectors
+        struct HueBucket {
+            var pixels: [Pixel] = []
+            var score: Double = 0
+        }
+        var buckets = [HueBucket](repeating: HueBucket(), count: 16)
+        for p in chromaticPixels {
+            let bIdx = min(max(Int(p.h * 16.0), 0), 15)
+            // Weight by saturation and midtone balance
+            let weight = pow(p.s, 1.1) * (1.0 - abs(p.v - 0.6) * 0.4)
+            buckets[bIdx].pixels.append(p)
+            buckets[bIdx].score += weight
+        }
+
+        guard let winning = buckets.max(by: { $0.score < $1.score }), !winning.pixels.isEmpty else {
+            return .neutral
+        }
+
+        let pCount = Double(winning.pixels.count)
+        var winR = winning.pixels.reduce(0.0) { $0 + $1.r } / pCount
+        var winG = winning.pixels.reduce(0.0) { $0 + $1.g } / pCount
+        var winB = winning.pixels.reduce(0.0) { $0 + $1.b } / pCount
+
+        // Floor brightness for visibility against pure black dynamic island
+        let maxComponent = max(winR, max(winG, winB))
+        if maxComponent < 0.72 && maxComponent > 0.001 {
+            let scale = min(0.76 / maxComponent, 2.0)
+            winR = min(winR * scale, 1.0)
+            winG = min(winG * scale, 1.0)
+            winB = min(winB * scale, 1.0)
+        }
+
+        // Apple signature vertical gradient
         let topColor = Color(
-            red: min(topRGB.r * 1.18 + 0.04, 1.0),
-            green: min(topRGB.g * 1.18 + 0.04, 1.0),
-            blue: min(topRGB.b * 1.18 + 0.04, 1.0)
+            red: min(winR * 1.16 + 0.04, 1.0),
+            green: min(winG * 1.16 + 0.04, 1.0),
+            blue: min(winB * 1.16 + 0.04, 1.0)
         )
-        let bottomColor = Color(red: bottomRGB.r, green: bottomRGB.g, blue: bottomRGB.b)
-        let overallColor = Color(red: overallRGB.r, green: overallRGB.g, blue: overallRGB.b)
+        let bottomColor = Color(red: winR * 0.92, green: winG * 0.92, blue: winB * 0.92)
+        let overallColor = Color(red: winR, green: winG, blue: winB)
 
-        return (overallColor, topColor, bottomColor)
+        return ArtworkPalette(overall: overallColor, top: topColor, bottom: bottomColor)
     }
 
     // MARK: - Spotify Fetcher
@@ -398,6 +487,7 @@ public final class NowPlayingManager: ObservableObject {
         let appName = currentTrack.source == .appleMusic ? "Music" : "Spotify"
         executeScript("tell application \"\(appName)\" to playpause")
         currentTrack.isPlaying.toggle()
+        onPlaybackStateChanged?(currentTrack.isPlaying)
     }
 
     public func nextTrack() {

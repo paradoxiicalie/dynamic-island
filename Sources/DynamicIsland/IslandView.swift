@@ -224,7 +224,7 @@ public struct IslandView: View {
                 ForEach(0..<6, id: \.self) { idx in
                     Capsule()
                         .fill(nowPlaying.waveformGradient)
-                        .frame(width: 2.4, height: nowPlaying.currentTrack.isPlaying ? compactBars[idx] : 3.0)
+                        .frame(width: 2.4, height: compactBars[idx])
                         .animation(.easeInOut(duration: 0.16), value: compactBars)
                 }
             }
@@ -246,61 +246,65 @@ public struct IslandView: View {
 
     // MARK: - 2b. Compact Track Change Banner (Apple iOS slide-in title)
     private func compactTrackChangePill(track: MediaTrack) -> some View {
-        HStack(spacing: 8) {
-            // Leading: Artwork
-            Group {
-                if let art = nowPlaying.artworkImage {
-                    Image(nsImage: art)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 22, height: 22)
-                        .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6.5, style: .continuous)
-                                .stroke(Color.white.opacity(0.14), lineWidth: 0.5)
-                        )
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.15))
+        HStack(spacing: 6) {
+            // Leading Left Wing: Artwork + Title & Artist
+            HStack(spacing: 7) {
+                Group {
+                    if let art = nowPlaying.artworkImage {
+                        Image(nsImage: art)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
                             .frame(width: 22, height: 22)
-                        Image(systemName: "music.note")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                                    .stroke(Color.white.opacity(0.14), lineWidth: 0.5)
+                            )
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.15))
+                                .frame(width: 22, height: 22)
+                            Image(systemName: "music.note")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                        }
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 0.5) {
+                    Text(track.title)
+                        .font(.system(size: 11, weight: .bold, design: .default))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    Text(track.artist)
+                        .font(.system(size: 9, weight: .medium, design: .default))
+                        .foregroundColor(Color.white.opacity(0.68))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(maxWidth: 84, alignment: .leading)
             }
             .padding(.leading, 8)
 
-            // Middle Left: Title & Artist marquee
-            VStack(alignment: .leading, spacing: 0.5) {
-                Text(track.title)
-                    .font(.system(size: 11.5, weight: .bold, design: .default))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+            // Middle: Clear spacer precisely matching the physical notch
+            Spacer(minLength: notchWidth)
 
-                Text(track.artist)
-                    .font(.system(size: 9.5, weight: .medium, design: .default))
-                    .foregroundColor(Color.white.opacity(0.65))
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: 130, alignment: .leading)
-
-            Spacer(minLength: notchWidth - 90)
-
-            // Trailing: 6-bar Apple SystemAperture Waveform (Vertically Centered)
+            // Trailing Right Wing: 6-bar Apple SystemAperture Waveform (Vertically Centered)
             HStack(spacing: 2.2) {
                 ForEach(0..<6, id: \.self) { idx in
                     Capsule()
                         .fill(nowPlaying.waveformGradient)
-                        .frame(width: 2.4, height: nowPlaying.currentTrack.isPlaying ? compactBars[idx] : 3.0)
+                        .frame(width: 2.4, height: compactBars[idx])
                         .animation(.easeInOut(duration: 0.16), value: compactBars)
                 }
             }
             .padding(.trailing, 10)
         }
         .frame(height: notchHeight)
-        .frame(minWidth: notchWidth + 185)
+        .frame(minWidth: notchWidth + 240)
         .contentShape(Rectangle())
         .onTapGesture {
             IslandWindowController.shared.toggleExpansion()
@@ -587,7 +591,7 @@ public struct IslandView: View {
                     ForEach(0..<5, id: \.self) { idx in
                         Capsule()
                             .fill(nowPlaying.waveformGradient)
-                            .frame(width: 2.8, height: nowPlaying.currentTrack.isPlaying ? expandedBars[idx] : 3.0)
+                            .frame(width: 2.8, height: expandedBars[idx])
                             .animation(.easeInOut(duration: 0.18), value: expandedBars)
                     }
                 }
@@ -1277,7 +1281,7 @@ public struct IslandView: View {
 
     private var isPlayingMusicActive: Bool {
         switch presentationMode {
-        case .compactMusic, .expandedMusic, .compactDual:
+        case .compactMusic, .expandedMusic, .compactDual, .compactTrackChange:
             return nowPlaying.currentTrack.isPlaying
         default:
             return false
@@ -1289,6 +1293,22 @@ public struct IslandView: View {
 
         if shouldAnimate {
             if waveformTimer == nil {
+                // Immediate burst to lively heights (no 0.16s hesitation)
+                compactBars = [
+                    CGFloat.random(in: 6...18),
+                    CGFloat.random(in: 5...15),
+                    CGFloat.random(in: 9...20),
+                    CGFloat.random(in: 6...14),
+                    CGFloat.random(in: 4...10),
+                    CGFloat.random(in: 2.5...5.0)
+                ]
+                expandedBars = [
+                    CGFloat.random(in: 4...10),
+                    CGFloat.random(in: 8...18),
+                    CGFloat.random(in: 14...24),
+                    CGFloat.random(in: 9...19),
+                    CGFloat.random(in: 3...8)
+                ]
                 waveformTimer = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { _ in
                     DispatchQueue.main.async {
                         compactBars = [
@@ -1312,8 +1332,10 @@ public struct IslandView: View {
         } else {
             waveformTimer?.invalidate()
             waveformTimer = nil
-            compactBars = [6, 10, 14, 10, 6, 2.5]
-            expandedBars = [3, 6, 8, 6, 3]
+            withAnimation(.easeInOut(duration: 0.22)) {
+                compactBars = [6, 10, 14, 10, 6, 2.5]
+                expandedBars = [4, 8, 14, 8, 4]
+            }
         }
     }
 

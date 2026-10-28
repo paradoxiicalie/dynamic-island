@@ -11,6 +11,7 @@ public final class IslandWindowController: NSObject {
     @Published public var isPinned: Bool = false
     @Published public var presentationMode: IslandPresentationMode = .idle {
         didSet {
+            print("[DynamicIsland] presentationMode -> \(presentationMode)")
             updateWindowFrame(animated: true)
             if isExpanded {
                 startMonitoringDismissEvents()
@@ -26,6 +27,7 @@ public final class IslandWindowController: NSObject {
 
     private var hoverTimer: Timer?
     private var transientAlertTimer: Timer?
+    private var musicPauseGraceTimer: Timer?
     private var clickOutsideMonitor: Any?
     private var localClickMonitor: Any?
     private var keyMonitor: Any?
@@ -223,6 +225,14 @@ public final class IslandWindowController: NSObject {
 
     // MARK: - Autonomous Observers
     private func setupObservers() {
+        // Initial state sync on startup
+        Task { @MainActor [weak self] in
+            await NowPlayingManager.shared.updateNowPlaying()
+            if let self = self, NowPlayingManager.shared.currentTrack.isPlaying && self.presentationMode == .idle {
+                self.presentationMode = .compactMusic
+            }
+        }
+
         // 1. Battery Power State Changed (Plugged in or Unplugged)
         BatteryMonitor.shared.onPluggedInStateChanged = { [weak self] isPlugged in
             Task { @MainActor [weak self] in
@@ -302,7 +312,44 @@ public final class IslandWindowController: NSObject {
         // 7. Track Change Auto-Banner (Title/Artist brief slide-in)
         NowPlayingManager.shared.onTrackChanged = { [weak self] track in
             Task { @MainActor [weak self] in
-                self?.showTransientAlert(mode: .compactTrackChange(track), duration: 3.2)
+                self?.musicPauseGraceTimer?.invalidate()
+                self?.musicPauseGraceTimer = nil
+                self?.showTransientAlert(mode: .compactTrackChange(track), duration: 2.8)
+            }
+        }
+
+        // 7b. Instant Playback State Changed (Zero-latency 0ms reaction)
+        NowPlayingManager.shared.onPlaybackStateChanged = { [weak self] isPlaying in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.musicPauseGraceTimer?.invalidate()
+                self.musicPauseGraceTimer = nil
+
+                guard self.transientAlertTimer == nil && !self.isPinned && !self.isExpanded && self.presentationMode != .compactLockScreen else { return }
+
+                if isPlaying {
+                    let activeTimer = TimerManager.shared.activeTimer
+                    if let activeTimer = activeTimer {
+                        self.presentationMode = .compactDual(NowPlayingManager.shared.currentTrack, activeTimer)
+                    } else {
+                        self.presentationMode = .compactMusic
+                    }
+                } else {
+                    // Apple iOS Dynamic Island: keep paused island visible for 5.0 seconds
+                    // so user sees paused resting state before graceful collapse to idle!
+                    self.musicPauseGraceTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+                        Task { @MainActor [weak self] in
+                            guard let self = self else { return }
+                            if !NowPlayingManager.shared.currentTrack.isPlaying && !self.isPinned && !self.isExpanded {
+                                if let activeTimer = TimerManager.shared.activeTimer {
+                                    self.presentationMode = .compactTimer(activeTimer)
+                                } else {
+                                    self.presentationMode = .idle
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -331,11 +378,11 @@ public final class IslandWindowController: NSObject {
             }
         }
 
-        // 9. Media Playback Auto-Detection (Poll & State Transition)
-        Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+        // 9. Media Playback Fallback Watchdog (Safe 2.5s interval to conserve CPU/battery)
+        Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                guard self.transientAlertTimer == nil && !self.isPinned && !self.isExpanded && self.presentationMode != .compactLockScreen else { return }
+                guard self.transientAlertTimer == nil && self.musicPauseGraceTimer == nil && !self.isPinned && !self.isExpanded && self.presentationMode != .compactLockScreen else { return }
 
                 let isPlaying = NowPlayingManager.shared.currentTrack.isPlaying
                 let activeTimer = TimerManager.shared.activeTimer
@@ -449,7 +496,7 @@ public final class IslandWindowController: NSObject {
             width = notchWidth + 92
             height = notchHeight
         case .compactTrackChange:
-            width = notchWidth + 185
+            width = notchWidth + 240
             height = notchHeight
         case .compactLowBattery:
             width = notchWidth + 120
