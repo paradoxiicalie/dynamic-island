@@ -298,6 +298,7 @@ public final class IslandWindowController: NSObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                guard self?.transientAlertTimer == nil else { return }
                 self?.setupNotchGeometry()
                 self?.updateWindowFrame(animated: false)
             }
@@ -306,9 +307,10 @@ public final class IslandWindowController: NSObject {
         // 7. Track Change Auto-Banner (Title/Artist brief slide-in)
         NowPlayingManager.shared.onTrackChanged = { [weak self] track in
             Task { @MainActor [weak self] in
-                self?.musicPauseGraceTimer?.invalidate()
-                self?.musicPauseGraceTimer = nil
-                self?.showTransientAlert(mode: .compactTrackChange(track), duration: 2.8)
+                guard let self = self, self.transientAlertTimer == nil else { return }
+                self.musicPauseGraceTimer?.invalidate()
+                self.musicPauseGraceTimer = nil
+                self.showTransientAlert(mode: .compactTrackChange(track), duration: 2.8)
             }
         }
 

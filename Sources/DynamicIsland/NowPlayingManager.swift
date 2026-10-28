@@ -40,6 +40,7 @@ public final class NowPlayingManager: ObservableObject {
     private var isUpdating = false
     private var cachedArtworkURL: URL?
     private var previousTrackTitle: String = ""
+    private var failedUpdateCount = 0
 
     private lazy var compiledSpotifyScript: NSAppleScript? = {
         let scriptSource = """
@@ -181,6 +182,7 @@ public final class NowPlayingManager: ObservableObject {
         }
 
         if let track = newTrack {
+            failedUpdateCount = 0
             let wasDifferent = (track.title != previousTrackTitle && !track.title.isEmpty)
             let isPlayingChanged = (track.isPlaying != currentTrack.isPlaying)
 
@@ -214,7 +216,9 @@ public final class NowPlayingManager: ObservableObject {
             return
         }
 
-        if currentTrack != .empty {
+        failedUpdateCount += 1
+        // Safeguard: Only wipe track if 2 consecutive fetches returned nil (prevents transient flicker on wake/sleep)
+        if failedUpdateCount >= 2 && currentTrack != .empty {
             withAnimation(.easeInOut(duration: 0.28)) {
                 self.currentTrack = .empty
                 self.artworkImage = nil

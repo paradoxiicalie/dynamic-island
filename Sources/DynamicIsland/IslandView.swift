@@ -43,86 +43,86 @@ public struct IslandView: View {
                     case .compactMusic:
                         compactMusicPill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactTrackChange(let track):
                         compactTrackChangePill(track: track)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactBattery:
                         compactBatteryPill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactLowBattery:
                         compactLowBatteryPill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactVolume:
                         compactVolumePill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactMute:
                         compactMutePill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactAirPods:
                         compactAirPodsPill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactUnlock:
                         compactUnlockPill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactLockScreen:
                         compactLockScreenPill
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactAlert(let info):
                         compactAlertPill(info: info)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactFocus(let info):
                         compactFocusPill(info: info)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactTimer(let info):
                         compactTimerPill(info: info)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactDual(let track, let timer):
                         compactDualPill(track: track, timer: timer)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .compactBrightness(let level):
                         compactBrightnessPill(level: level)
                             .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                                insertion: .opacity.animation(.easeInOut(duration: 0.16).delay(0.06)),
+                                removal: .opacity.animation(.easeOut(duration: 0.10))
                             ))
                     case .expandedMusic:
                         expandedMusicCard
@@ -418,6 +418,7 @@ public struct IslandView: View {
             Text("\(batteryMonitor.currentBattery.percentage)%")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(.green)
+                .fixedSize()
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
@@ -482,6 +483,7 @@ public struct IslandView: View {
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.red)
                 .lineLimit(1)
+                .fixedSize()
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
@@ -510,6 +512,7 @@ public struct IslandView: View {
             Text(audioMonitor.isMuted ? "Muted" : "Sound")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(audioMonitor.isMuted ? .red : .white)
+                .fixedSize()
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)
@@ -538,6 +541,7 @@ public struct IslandView: View {
                 Text("Unlocked")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
+                    .fixedSize()
             }
             .padding(.trailing, 14)
         }
@@ -607,6 +611,7 @@ public struct IslandView: View {
                 Text("Connected")
                     .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
+                    .fixedSize()
             }
             .padding(.trailing, 12)
         }
@@ -1020,6 +1025,7 @@ public struct IslandView: View {
             Text(info.formattedRemaining)
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(.orange)
+                .fixedSize()
                 .padding(.trailing, 12)
         }
         .frame(height: notchHeight)

@@ -2,10 +2,12 @@ import AppKit
 import SwiftUI
 
 @MainActor
-public final class AppDelegate: NSObject, NSApplicationDelegate {
+public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var islandController: IslandWindowController!
     private var distributedHandlers: [String: (Notification) -> Void] = [:]
+    private var toggleItem: NSMenuItem!
+    private var launchAtLoginItem: NSMenuItem!
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         // Run as background/accessory agent (no Dock icon, unobtrusive system HUD)
@@ -138,6 +140,30 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var isLaunchAtLoginEnabled: Bool {
+        let script = "tell application \"System Events\" to return (exists login item \"DynamicIsland\")"
+        var error: NSDictionary?
+        if let appleScript = NSAppleScript(source: script) {
+            let res = appleScript.executeAndReturnError(&error)
+            return res.booleanValue
+        }
+        return false
+    }
+
+    private func setLaunchAtLogin(enabled: Bool) {
+        let appPath = Bundle.main.bundlePath
+        let script: String
+        if enabled {
+            script = "tell application \"System Events\" to make new login item at end with properties {name:\"DynamicIsland\", path:\"\(appPath)\", hidden:false}"
+        } else {
+            script = "tell application \"System Events\" to delete (every login item whose name is \"DynamicIsland\")"
+        }
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+        }
+    }
+
     private func setupStatusBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
@@ -146,41 +172,45 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
+        menu.delegate = self
 
-        let titleItem = NSMenuItem(title: "Dynamic Island (Active)", action: nil, keyEquivalent: "")
+        let titleItem = NSMenuItem(title: "Dynamic Island • Активен", action: nil, keyEquivalent: "")
         titleItem.isEnabled = false
         menu.addItem(titleItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let toggleItem = NSMenuItem(title: "Toggle Expanded View", action: #selector(toggleExpanded), keyEquivalent: "i")
+        toggleItem = NSMenuItem(title: "Развернуть остров", action: #selector(toggleExpanded), keyEquivalent: "i")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        let alertItem = NSMenuItem(title: "Simulate Charging Alert", action: #selector(simulateCharging), keyEquivalent: "b")
-        alertItem.target = self
-        menu.addItem(alertItem)
+        launchAtLoginItem = NSMenuItem(title: "Запуск при входе", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchAtLoginItem.target = self
+        launchAtLoginItem.state = isLaunchAtLoginEnabled ? .on : .off
+        menu.addItem(launchAtLoginItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Завершить", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 
         statusItem.menu = menu
     }
 
-    @objc private func toggleExpanded() {
-        if islandController.presentationMode == .expandedMusic || islandController.presentationMode == .expandedBattery {
-            islandController.presentationMode = NowPlayingManager.shared.currentTrack.isPlaying ? .compactMusic : .idle
-        } else {
-            let hasMusic = NowPlayingManager.shared.currentTrack.isPlaying || !NowPlayingManager.shared.currentTrack.title.isEmpty
-            islandController.presentationMode = hasMusic ? .expandedMusic : .expandedBattery
-        }
+    public func menuWillOpen(_ menu: NSMenu) {
+        toggleItem.title = islandController.isExpanded ? "Свернуть остров" : "Развернуть остров"
+        launchAtLoginItem.state = isLaunchAtLoginEnabled ? .on : .off
     }
 
-    @objc private func simulateCharging() {
-        islandController.triggerBatteryAlert()
+    @objc private func toggleLaunchAtLogin() {
+        let enable = !isLaunchAtLoginEnabled
+        setLaunchAtLogin(enabled: enable)
+        launchAtLoginItem.state = enable ? .on : .off
+    }
+
+    @objc private func toggleExpanded() {
+        islandController.toggleExpansion()
     }
 
     @objc private func quitApp() {
