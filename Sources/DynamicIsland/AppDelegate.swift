@@ -6,20 +6,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
     private var statusItem: NSStatusItem!
     private var islandController: IslandWindowController!
     private var distributedHandlers: [String: (Notification) -> Void] = [:]
+
     private var toggleItem: NSMenuItem!
     private var launchAtLoginItem: NSMenuItem!
+    private var soundsItem: NSMenuItem!
+    private var hapticsItem: NSMenuItem!
+    private var hoverExpandItem: NSMenuItem!
+    private var modeMenuItems: [IslandDisplayMode: NSMenuItem] = [:]
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        // Run as background/accessory agent (no Dock icon, unobtrusive system HUD)
         NSApp.setActivationPolicy(.accessory)
-
-        // Initialize Dynamic Island
         islandController = IslandWindowController.shared
-
-        // Setup Menu Bar Extra
         setupStatusBar()
-
-        // Setup CLI / IPC notification observers
         setupDistributedNotifications()
     }
 
@@ -54,6 +52,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
 
         registerNotification(name: "com.alexey.dynamicisland.airpods") { [weak self] _ in
+            SoundManager.shared.play("chime")
             self?.islandController.showTransientAlert(mode: .compactAirPods, duration: 3.2)
         }
 
@@ -72,8 +71,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
 
         registerNotification(name: "com.alexey.dynamicisland.expandBattery") { [weak self] _ in
-            self?.islandController.isPinned = true
-            self?.islandController.presentationMode = .expandedBattery
+            self?.islandController.triggerBatteryAlert()
         }
 
         registerNotification(name: "com.alexey.dynamicisland.expandRoutes") { [weak self] _ in
@@ -82,19 +80,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
 
         registerNotification(name: "com.alexey.dynamicisland.expandTimer") { [weak self] _ in
-            if let current = TimerManager.shared.activeTimer {
-                self?.islandController.isPinned = true
-                self?.islandController.presentationMode = .expandedTimer(current)
-            }
+            guard let timer = TimerManager.shared.activeTimer else { return }
+            self?.islandController.isPinned = true
+            self?.islandController.presentationMode = .expandedTimer(timer)
         }
 
         registerNotification(name: "com.alexey.dynamicisland.timer") { [weak self] notif in
             guard let info = notif.userInfo, let secStr = info["seconds"] as? String, let sec = Int(secStr) else { return }
             let label = info["label"] as? String ?? "Timer"
             TimerManager.shared.startTimer(seconds: sec, label: label)
-            if let current = TimerManager.shared.activeTimer {
-                self?.islandController.presentationMode = .compactTimer(current)
-            }
+            self?.islandController.reconcileBaselineMode()
         }
 
         registerNotification(name: "com.alexey.dynamicisland.stopTimer") { [weak self] _ in
@@ -114,8 +109,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
             self?.islandController.triggerBrightnessAlert(level: lvl)
         }
 
+        registerNotification(name: "com.alexey.dynamicisland.lowPower") { [weak self] notif in
+            let enabled = (notif.userInfo?["enabled"] as? String) == "true"
+            self?.islandController.triggerLowPowerAlert(enabled: enabled)
+        }
+
+        registerNotification(name: "com.alexey.dynamicisland.displayMode") { [weak self] notif in
+            if let raw = notif.userInfo?["mode"] as? String, let mode = IslandDisplayMode(rawValue: raw) {
+                self?.islandController.displayMode = mode
+            }
+        }
+
         registerNotification(name: "com.alexey.dynamicisland.fileShelf") { [weak self] _ in
             self?.islandController.toggleFileShelf()
+        }
+
+        registerNotification(name: "com.alexey.dynamicisland.dropZone") { [weak self] _ in
+            self?.islandController.showTransientAlert(mode: .compactDropZone, duration: 3.0)
         }
 
         registerNotification(name: "com.alexey.dynamicisland.shelfAdd") { [weak self] notif in
@@ -140,30 +150,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
     }
 
-    private var isLaunchAtLoginEnabled: Bool {
-        let script = "tell application \"System Events\" to return (exists login item \"DynamicIsland\")"
-        var error: NSDictionary?
-        if let appleScript = NSAppleScript(source: script) {
-            let res = appleScript.executeAndReturnError(&error)
-            return res.booleanValue
-        }
-        return false
-    }
-
-    private func setLaunchAtLogin(enabled: Bool) {
-        let appPath = Bundle.main.bundlePath
-        let script: String
-        if enabled {
-            script = "tell application \"System Events\" to make new login item at end with properties {name:\"DynamicIsland\", path:\"\(appPath)\", hidden:false}"
-        } else {
-            script = "tell application \"System Events\" to delete (every login item whose name is \"DynamicIsland\")"
-        }
-        if let appleScript = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            appleScript.executeAndReturnError(&error)
-        }
-    }
-
     private func setupStatusBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
@@ -178,18 +164,55 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
         titleItem.isEnabled = false
         menu.addItem(titleItem)
 
-        menu.addItem(NSMenuItem.separator())
+        menu.addItem(.separator())
 
         toggleItem = NSMenuItem(title: "Развернуть остров", action: #selector(toggleExpanded), keyEquivalent: "i")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
+        let timerSubmenu = NSMenu(title: "Таймер")
+        for preset in TimerManager.presetDurations {
+            let item = NSMenuItem(title: preset.label, action: #selector(startTimerPreset(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = preset.seconds
+            item.representedObject = preset.label
+            timerSubmenu.addItem(item)
+        }
+        let timerParent = NSMenuItem(title: "Таймер", action: nil, keyEquivalent: "")
+        timerParent.submenu = timerSubmenu
+        menu.addItem(timerParent)
+
+        let modeSubmenu = NSMenu(title: "Режим отображения")
+        for mode in IslandDisplayMode.allCases {
+            let item = NSMenuItem(title: mode.localizedTitle, action: #selector(selectDisplayMode(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            modeMenuItems[mode] = item
+            modeSubmenu.addItem(item)
+        }
+        let modeParent = NSMenuItem(title: "Режим отображения", action: nil, keyEquivalent: "")
+        modeParent.submenu = modeSubmenu
+        menu.addItem(modeParent)
+
+        menu.addItem(.separator())
+
+        hoverExpandItem = NSMenuItem(title: "Раскрытие при наведении", action: #selector(toggleHoverExpand), keyEquivalent: "")
+        hoverExpandItem.target = self
+        menu.addItem(hoverExpandItem)
+
+        soundsItem = NSMenuItem(title: "Звуковые эффекты", action: #selector(toggleSounds), keyEquivalent: "")
+        soundsItem.target = self
+        menu.addItem(soundsItem)
+
+        hapticsItem = NSMenuItem(title: "Тактильный отклик", action: #selector(toggleHaptics), keyEquivalent: "")
+        hapticsItem.target = self
+        menu.addItem(hapticsItem)
+
         launchAtLoginItem = NSMenuItem(title: "Запуск при входе", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchAtLoginItem.target = self
-        launchAtLoginItem.state = isLaunchAtLoginEnabled ? .on : .off
         menu.addItem(launchAtLoginItem)
 
-        menu.addItem(NSMenuItem.separator())
+        menu.addItem(.separator())
 
         let quitItem = NSMenuItem(title: "Завершить", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
@@ -200,13 +223,41 @@ public final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate 
 
     public func menuWillOpen(_ menu: NSMenu) {
         toggleItem.title = islandController.isExpanded ? "Свернуть остров" : "Развернуть остров"
-        launchAtLoginItem.state = isLaunchAtLoginEnabled ? .on : .off
+        launchAtLoginItem.state = LoginItemHelper.isEnabled ? .on : .off
+        soundsItem.state = SoundManager.shared.isEnabled ? .on : .off
+        hapticsItem.state = HapticEngine.isEnabled ? .on : .off
+        hoverExpandItem.state = islandController.hoverToExpand ? .on : .off
+        for (mode, item) in modeMenuItems {
+            item.state = (islandController.displayMode == mode) ? .on : .off
+        }
+    }
+
+    @objc private func selectDisplayMode(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? String, let mode = IslandDisplayMode(rawValue: raw) {
+            islandController.displayMode = mode
+        }
+    }
+
+    @objc private func toggleHoverExpand() {
+        islandController.hoverToExpand.toggle()
+    }
+
+    @objc private func toggleSounds() {
+        _ = SoundManager.shared.toggleEnabled()
+    }
+
+    @objc private func toggleHaptics() {
+        HapticEngine.isEnabled.toggle()
     }
 
     @objc private func toggleLaunchAtLogin() {
-        let enable = !isLaunchAtLoginEnabled
-        setLaunchAtLogin(enabled: enable)
-        launchAtLoginItem.state = enable ? .on : .off
+        LoginItemHelper.toggle()
+    }
+
+    @objc private func startTimerPreset(_ sender: NSMenuItem) {
+        let label = sender.representedObject as? String ?? "Timer"
+        TimerManager.shared.startTimer(seconds: sender.tag, label: label)
+        islandController.reconcileBaselineMode()
     }
 
     @objc private func toggleExpanded() {
